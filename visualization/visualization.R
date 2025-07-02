@@ -27,7 +27,7 @@ rm(list=ls())
 ##################################
 read.imdb <- function(path, polarity = TRUE) {
   # path - string with the path to the data
-  # pos - boolean indication positive/negative
+  # pos - boolean indicating positive/negative
   files.list <- list.files(
     path = paste(path, "/", ifelse(polarity, "pos", "neg"), sep = "") %>% here(), 
     pattern = "\\.txt$", full.names = TRUE
