@@ -1,3 +1,5 @@
-*.txt
 *.RData
 *.Rhistory
+
+
+data/**/*.txt
