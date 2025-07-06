@@ -343,7 +343,6 @@ load("representations-symbolic-performance.RData")
 #     2nd. independent for every    #
 #          evaluation metric        #
 #####################################
-
 performance.long <- pivot_longer(
   performance,
   cols = c(silhouette, dunn, accuracy),
@@ -351,54 +350,29 @@ performance.long <- pivot_longer(
   values_to = "score"
 )
 
-performance.long <- performance.long %>%
-  mutate(group = paste(representation, feature.extraction.method, sep = " | "))
-
-# Best combination of F.E. method and representation method
-best.group <- performance.long %>%
-  group_by(metric, group) %>%
-  summarise(mean.score = mean(score, na.rm = TRUE), .groups = "drop") %>%
-  group_by(metric) %>%
-  slice_max(mean.score, n = 1, with_ties = FALSE)
-
-best.rep <- performance.long %>%
-  group_by(metric, representation) %>%
-  summarise(mean.score = mean(score, na.rm = TRUE), .groups = "drop") %>%
-  group_by(metric) %>%
-  slice_max(mean.score, n = 1, with_ties = FALSE)
-
-
-# Best representation and best F.E. method is categorised as "best" -> red bold line
-# Best representation is categorised as "best.rep" -> red thin lines
-performance.long <- performance.long %>%
-  left_join(best.group, by = c("metric", "group")) %>%
-  mutate(best = !is.na(mean.score)) %>%
-  left_join(best.rep, by = c("metric", "representation")) %>%
-  mutate(best.rep = !is.na(mean.score.y)) %>%
-  mutate(line.type = case_when(
-    best ~ "best", best.rep ~ "best.rep", TRUE ~ "other"
-  )) %>%
-  select(-mean.score.x, -mean.score.y, -best, -best.rep)
-
-
 # Graph with facet wrap
+performance.long <- performance.long %>%
+  mutate(
+    group = paste(representation, feature.extraction.method, sep = " | "),
+    is.ebr = ifelse(feature.extraction.method == "Entropy-based Ranking", "EBR", "Resto")
+  )
+
 ggplot(performance.long, aes(
-  x = feature.extraction.amount,
-  y = score,
-  group = group,
-  color = line.type,
-  size = line.type
-)) +
-  geom_line(alpha = 0.9) +
-  scale_x_log10(
-    labels = scales::label_number()
-  ) +
+    x = feature.extraction.amount, y = score, 
+    color = representation, group = group, 
+  )) +
+  geom_line(aes(color = representation), linewidth = 1, alpha = 0.9) +
+  geom_point(aes(shape = is.ebr), size = 3) +
   scale_color_manual(
-    values = c("best" = "red", "best.rep" = "red", "other" = "grey70")
+    name = "Representation",
+    values = c("TF-IDF" = "#0072B2", "BoW" = "#E69F00")
+  ) + 
+  scale_shape_manual(
+    name = "Feature extraction\nmethod",
+    values = c("EBR" = 16),
+    labels = c("Entropy-based Ranking")
   ) +
-  scale_size_manual(
-    values = c("best" = 0.8, "best.rep" = 0.8, "other" = 0.8)
-  ) +
+  scale_x_log10() +
   facet_wrap(
     ~ metric, scales = "free_y", 
     labeller = labeller(metric = c(
@@ -407,110 +381,79 @@ ggplot(performance.long, aes(
       accuracy = "Accuracy"
     ))
   ) +
-  theme_bw(base_size = 13) +
-  theme(legend.position = "none") +
   labs(
     title = "Clustering performance for symbolic representations",
-    subtitle = "BoW and TF-IDF are combined with the F.E. methods DF, TS, EBR, and TC. Lines in red represent TF-IDF. ",
+    subtitle = "BoW and TF-IDF are combined with the F.E. methods DF, TS, EBR, and TC",
     x = "Number of extracted features (log scale)",
     y = "Evaluation metric value"
-  )
+  ) +
+  theme_bw(base_size = 16) +
+  theme(legend.position = "bottom")
+
 
 
 # Individual graphs
 graph.params.list <- list(
   list(
     metric = "accuracy", name = "Accuracy",
-    scale.y.breaks = seq(0.50, round(max(performance$accuracy) + 0.01, 2), by = 0.02),
     scale.y.limits = c(0.50, max(performance$accuracy)),
     scale.y.labels = scales::percent_format(accuracy = 1)
   ),
   list(
     metric = "dunn", name = "Dunn index",
-    scale.y.breaks = seq(0, 0.45, by = 0.05),
     scale.y.limits = c(-0.01, 0.45),
     scale.y.labels = waiver()
   ),
   list(
     metric = "silhouette", name = "Average silhouette index",
-    scale.y.breaks = seq(-0.1, 0.2, by = 0.05),
     scale.y.limits = c(-0.1, 0.2),
     scale.y.labels = waiver()
   )
 )
 for (graph.params in graph.params.list) {
-  df.m <- performance.long %>% filter(metric == graph.params$metric)
-  
-  label.data <- df.m %>%
+  label.data <- performance.long %>% 
+    filter(metric == graph.params$metric) %>%
     group_by(group) %>%
     filter(feature.extraction.amount == max(feature.extraction.amount)) %>%
     ungroup()
-  
-  legend <- c(
-    "best" = best.group$group[best.group$metric == graph.params$metric],
-    "best.rep" = best.rep$representation[best.group$metric == graph.params$metric] %>% as.character(),
-    "other" = "Resto"
-  )
-  
+
   set.seed(456)
-  p <- ggplot(df.m, aes(
-    x = feature.extraction.amount, y = score, group = group,
-    color = line.type, size = line.type, linetype = line.type
-  )) +
-    geom_line(alpha = 0.9) +
+  p <- performance.long %>% 
+    filter(metric == graph.params$metric) %>%
+    ggplot(aes(
+      x = feature.extraction.amount, y = score, 
+      color = representation, group = group
+    )) +
+    geom_line(aes(color = representation), linewidth = 1, alpha = 0.9) +
+    geom_point(size = 1.75) +
     geom_text_repel(
       data = label.data,
-      aes(
-        label = group, color = line.type, 
-        fontface = ifelse(line.type == "best", "bold", "plain")
-      ),
-      size = 3.5,
-      direction = "y",
-      hjust = 0,
-      nudge_x = 0.4,
-      nudge_y = 0
+      aes(label = group, color = representation),
+      size = 3.5, direction = "y", hjust = 0,
+      nudge_x = 0.4, nudge_y = 0
     ) +
     scale_x_log10(
-      breaks = feature.extraction.amount,
+      breaks = c(10, 100, 1000),
       labels = scales::label_number(),
       expand = expansion(mult = c(0.01, 0.35))
     ) +
     scale_y_continuous(
-      breaks = graph.params$scale.y.breaks,
       limits = graph.params$scale.y.limits,
       labels = graph.params$scale.y.labels
     ) +
     scale_color_manual(
-      values = c("best" = "red", "best.rep" = "red", "other" = "grey50"),
-      labels = legend, name = "Legend"
-    ) +
-    scale_size_manual(
-      values = c("best" = 1.2, "best.rep" = 0.6, "other" = 0.7),
-      labels = legend, name = "Legend"
-    ) +
-    scale_linetype_manual(
-      values = c("best" = "solid", "best.rep" = "solid", "other" = "solid"),
-      labels = legend, name = "Legend"
-    ) +
+      name = "Legend",
+      values = c("TF-IDF" = "#0072B2", "BoW" = "#E69F00")
+    ) + 
     theme_bw(base_size = 16) +
-    theme(
-      legend.position = "none", # c(0.95, 0.05),
-      legend.justification = c("right", "bottom"),
-      legend.background = element_rect(fill = alpha("white", 0.8), color = NA),
-      legend.title = element_text(size = 10),
-      legend.text = element_text(size = 9)
-    ) +
+    theme(legend.position = "none") +
     labs(
       title = paste(graph.params$name, "for symbolic representations"),
-      subtitle = "Lines in red represent TF-IDF, and the bold line the best F.E. method.",
       x = "Number of extracted features (log scale)",
       y = graph.params$name,
       color = "Line Type",
-      size = "Line Type",
+      size = "Line Type"      
     )
   
   print(p)
 }
-
-
-

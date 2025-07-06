@@ -15,8 +15,8 @@ dimensions <- c(5, 10, 25, 50, 100, 250, 500)
 #              LSA               #
 ##################################
 
-get.lsa.embeddings <- function(dimensions) {
-  lsa.model <- LatentSemanticAnalysis$new(n_topics = dimensions)
+get.lsa.embeddings <- function(d) {
+  lsa.model <- LatentSemanticAnalysis$new(n_topics = d)
   lsa.embeddings <- lsa.model$fit_transform(tfidf)
   return(lsa.embeddings)
 }
@@ -206,7 +206,7 @@ ggplot(performance.long, aes(x = dimensions, y = score, group = representation))
   geom_line(aes(color = representation), linewidth = 1.2) +
   geom_point(aes(color = representation, shape = representation), size = 3) +
   scale_color_manual(name = "Legend",
-    values = c("LSA" = "red", "Word2Vec" = "blue", "GloVe" = "grey70")
+    values = c("LSA" = "#E69F00", "Word2Vec" = "#0072B2", "GloVe" = "#009E73")
   ) + 
   scale_shape_manual(name = "Legend",
     values = c("LSA" = 16, "Word2Vec" = 17, "GloVe" = 4)
