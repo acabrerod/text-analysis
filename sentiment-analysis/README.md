@@ -1,3 +1,28 @@
+# Sentiment Analysis
+
+This folder contains the R code and visualizations used to evaluate different sentiment analysis lexicon-based approaches applied to the IMDb Movie Reviews dataset (25.000 reviews from test subset).
+
+
+
+## 1. Methodology Overview
+
+All of the available dictionaries from the following R packages were used:
+
+ - `syuzhet`
+ - `tidytext`
+ - `sentimentr`
+ - `SentimentAnalysis`
+
+
+
+## 2. Results
+
+To evaluate the performance of the sentiment analysis approaches, the metrics Accuracy and F1-Score are employed.
+
+The following tables show the performance of every method, where the rows represent a given dictionary, and the columns the R package.
+
+
+```r
 > round(accuracy, 4)
                syuzhet tidytext sentimentr SentimentAnalysis
 GI                  NA       NA         NA            0.6410
@@ -10,6 +35,7 @@ SentiWordNet        NA       NA     0.6331                NA
 Henry               NA       NA         NA            0.5718
 Loughran            NA       NA     0.6853            0.6514
 Jockers-Rinker      NA       NA     0.7355                NA
+
 > round(f1, 4)
                syuzhet tidytext sentimentr SentimentAnalysis
 GI                  NA       NA         NA            0.5336
@@ -22,3 +48,4 @@ SentiWordNet        NA       NA     0.5762                NA
 Henry               NA       NA         NA            0.4332
 Loughran            NA       NA     0.6864            0.7028
 Jockers-Rinker      NA       NA     0.7084                NA
+```
